@@ -49,5 +49,38 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- Supabase
+
+## Environment Variables Setup
+
+This project requires Supabase environment variables to work properly. You need to set these up both locally and in Vercel.
+
+### Required Environment Variables
+
+- `VITE_SUPABASE_URL` - Your Supabase project URL
+- `VITE_SUPABASE_PUBLISHABLE_KEY` - Your Supabase anon/public key
+
+### Setting up in Vercel
+
+1. Go to your Vercel project dashboard
+2. Navigate to **Settings** → **Environment Variables**
+3. Add the following variables:
+   - `VITE_SUPABASE_URL` = Your Supabase project URL (found in Supabase Dashboard → Settings → API)
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` = Your Supabase anon key (found in Supabase Dashboard → Settings → API)
+4. Make sure to select all environments (Production, Preview, Development)
+5. Click **Save**
+6. **Redeploy** your application for the changes to take effect
+
+### Setting up locally
+
+1. Create a `.env.local` file in the root directory
+2. Add your environment variables:
+   ```
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
+   ```
+3. Restart your development server
+
+**Note:** Never commit `.env.local` to git. It should be in your `.gitignore` file.
 
 
