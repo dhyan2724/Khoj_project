@@ -1,43 +1,112 @@
-import { useState } from 'react';
-import { Search, Download, Clock, ArrowRight } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import Layout from '@/components/layout/Layout';
-import { busRoutes } from '@/data/transportData';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { BusRoute } from '@/types/transport';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { supabase } from '@/integrations/supabase/client';
+import { ArrowRight, Clock, Download, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+interface RouteWithStopsCount {
+  id: string;
+  route_number: string;
+  name: string;
+  name_gu: string | null;
+  start_point: string;
+  end_point: string;
+  distance: number | null;
+  estimated_time: number | null;
+  first_bus: string | null;
+  last_bus: string | null;
+  frequency: string | null;
+  fare: number | null;
+  color: string | null;
+  stops_count: number;
+}
 
 const Routes = () => {
   const { language, t } = useLanguage();
+  const navigate = useNavigate();
   const isGu = language.code === 'gu';
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRoute, setSelectedRoute] = useState<BusRoute | null>(null);
+  const [selectedRoute, setSelectedRoute] = useState<RouteWithStopsCount | null>(null);
+  const [routes, setRoutes] = useState<RouteWithStopsCount[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredRoutes = busRoutes.filter((route) => {
+  useEffect(() => {
+    const fetchRoutes = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch all routes
+        const { data: routesData, error: routesError } = await supabase
+          .from('bus_routes')
+          .select('*')
+          .order('route_number', { ascending: true });
+
+        if (routesError) {
+          throw routesError;
+        }
+
+        if (!routesData || routesData.length === 0) {
+          setRoutes([]);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch stops count for each route
+        const routesWithStops = await Promise.all(
+          routesData.map(async (route) => {
+            const { count, error: countError } = await supabase
+              .from('route_stops')
+              .select('*', { count: 'exact', head: true })
+              .eq('route_id', route.id);
+
+            return {
+              ...route,
+              stops_count: countError ? 0 : (count || 0),
+            };
+          })
+        );
+
+        setRoutes(routesWithStops);
+      } catch (err: any) {
+        console.error('Error fetching routes:', err);
+        setError(err.message || (isGu ? 'રૂટ્સ લાવવામાં ભૂલ' : 'Error loading routes'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRoutes();
+  }, [isGu]);
+
+  const filteredRoutes = routes.filter((route) => {
     const search = searchTerm.toLowerCase();
     return (
-      route.routeNumber.toLowerCase().includes(search) ||
+      route.route_number.toLowerCase().includes(search) ||
       route.name.toLowerCase().includes(search) ||
-      route.nameGu.includes(search) ||
-      route.startPoint.toLowerCase().includes(search) ||
-      route.endPoint.toLowerCase().includes(search)
+      (route.name_gu?.toLowerCase().includes(search) || false) ||
+      route.start_point.toLowerCase().includes(search) ||
+      route.end_point.toLowerCase().includes(search)
     );
   });
 
   const handleDownload = () => {
-    // Simulate timetable download
-    const timetableData = busRoutes.map(route => ({
-      route: route.routeNumber,
+    const timetableData = routes.map(route => ({
+      route: route.route_number,
       name: route.name,
-      firstBus: route.firstBus,
-      lastBus: route.lastBus,
+      firstBus: route.first_bus,
+      lastBus: route.last_bus,
       frequency: route.frequency,
     }));
     
@@ -85,65 +154,89 @@ const Routes = () => {
         </div>
 
         {/* Routes Table */}
-        <div className="bg-card rounded-xl border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="text-left p-4 font-semibold text-foreground">{t('routes.routeNumber')}</th>
-                  <th className="text-left p-4 font-semibold text-foreground">{isGu ? 'રૂટ નામ' : 'Route Name'}</th>
-                  <th className="text-left p-4 font-semibold text-foreground hidden md:table-cell">{t('routes.stops')}</th>
-                  <th className="text-left p-4 font-semibold text-foreground hidden lg:table-cell">{t('routes.firstBus')}</th>
-                  <th className="text-left p-4 font-semibold text-foreground hidden lg:table-cell">{t('routes.lastBus')}</th>
-                  <th className="text-left p-4 font-semibold text-foreground">{t('routes.frequency')}</th>
-                  <th className="text-left p-4 font-semibold text-foreground"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRoutes.map((route, index) => (
-                  <tr 
-                    key={route.id}
-                    className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
-                    onClick={() => setSelectedRoute(route)}
-                  >
-                    <td className="p-4">
-                      <div 
-                        className="inline-flex items-center justify-center w-10 h-10 rounded-lg text-sm font-bold text-white"
-                        style={{ backgroundColor: route.color }}
-                      >
-                        {route.routeNumber}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div>
-                        <p className="font-medium text-foreground">{isGu ? route.nameGu : route.name}</p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          {route.startPoint} <ArrowRight className="h-3 w-3" /> {route.endPoint}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="p-4 hidden md:table-cell">
-                      <Badge variant="secondary">{route.stops.length} {isGu ? 'સ્ટોપ' : 'stops'}</Badge>
-                    </td>
-                    <td className="p-4 hidden lg:table-cell text-foreground">{route.firstBus}</td>
-                    <td className="p-4 hidden lg:table-cell text-foreground">{route.lastBus}</td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        {route.frequency}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <Button variant="ghost" size="sm">
-                        {t('common.viewDetails')}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {loading ? (
+          <div className="bg-card rounded-xl border border-border p-8">
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
           </div>
-        </div>
+        ) : error ? (
+          <div className="bg-card rounded-xl border border-border p-8 text-center">
+            <p className="text-destructive mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>
+              {isGu ? 'ફરીથી પ્રયાસ કરો' : 'Retry'}
+            </Button>
+          </div>
+        ) : (
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="text-left p-4 font-semibold text-foreground">{t('routes.routeNumber')}</th>
+                    <th className="text-left p-4 font-semibold text-foreground">{isGu ? 'રૂટ નામ' : 'Route Name'}</th>
+                    <th className="text-left p-4 font-semibold text-foreground hidden md:table-cell">{t('routes.stops')}</th>
+                    <th className="text-left p-4 font-semibold text-foreground hidden lg:table-cell">{t('routes.firstBus')}</th>
+                    <th className="text-left p-4 font-semibold text-foreground hidden lg:table-cell">{t('routes.lastBus')}</th>
+                    <th className="text-left p-4 font-semibold text-foreground">{t('routes.frequency')}</th>
+                    <th className="text-left p-4 font-semibold text-foreground"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRoutes.map((route) => (
+                    <tr 
+                      key={route.id}
+                      className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
+                    >
+                      <td className="p-4">
+                        <div 
+                          className="inline-flex items-center justify-center w-10 h-10 rounded-lg text-sm font-bold text-white"
+                          style={{ backgroundColor: route.color || '#2563eb' }}
+                        >
+                          {route.route_number}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div>
+                          <p className="font-medium text-foreground">{isGu && route.name_gu ? route.name_gu : route.name}</p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            {route.start_point} <ArrowRight className="h-3 w-3" /> {route.end_point}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="p-4 hidden md:table-cell">
+                        <Badge variant="secondary">{route.stops_count} {isGu ? 'સ્ટોપ' : 'stops'}</Badge>
+                      </td>
+                      <td className="p-4 hidden lg:table-cell text-foreground">{route.first_bus || '-'}</td>
+                      <td className="p-4 hidden lg:table-cell text-foreground">{route.last_bus || '-'}</td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          {route.frequency || '-'}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/routes/${route.route_number}`);
+                          }}
+                        >
+                          {t('common.viewDetails')}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {filteredRoutes.length === 0 && (
           <div className="text-center py-12">
@@ -163,64 +256,58 @@ const Routes = () => {
                 <DialogTitle className="flex items-center gap-3">
                   <div 
                     className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
-                    style={{ backgroundColor: selectedRoute.color }}
+                    style={{ backgroundColor: selectedRoute.color || '#2563eb' }}
                   >
-                    {selectedRoute.routeNumber}
+                    {selectedRoute.route_number}
                   </div>
                   <div>
-                    <p className="text-lg">{isGu ? selectedRoute.nameGu : selectedRoute.name}</p>
+                    <p className="text-lg">{isGu && selectedRoute.name_gu ? selectedRoute.name_gu : selectedRoute.name}</p>
                     <p className="text-sm text-muted-foreground font-normal">
-                      {selectedRoute.distance} km • {selectedRoute.estimatedTime} {isGu ? 'મિનિટ' : 'min'}
+                      {selectedRoute.distance ? `${selectedRoute.distance} km` : ''} 
+                      {selectedRoute.distance && selectedRoute.estimated_time ? ' • ' : ''}
+                      {selectedRoute.estimated_time ? `${selectedRoute.estimated_time} ${isGu ? 'મિનિટ' : 'min'}` : ''}
                     </p>
                   </div>
                 </DialogTitle>
               </DialogHeader>
               
               <div className="mt-4">
-                <h4 className="font-semibold mb-3">{isGu ? 'સ્ટોપ' : 'Stops'}</h4>
-                <div className="space-y-0 max-h-[300px] overflow-y-auto">
-                  {selectedRoute.stops.map((stop, index) => {
-                    const isLast = index === selectedRoute.stops.length - 1;
-                    return (
-                      <div key={stop.id} className="flex items-start gap-3">
-                        <div className="flex flex-col items-center">
-                          <div 
-                            className={`w-3 h-3 rounded-full border-2 ${
-                              index === 0 || isLast
-                                ? 'bg-accent border-accent' 
-                                : 'bg-card border-muted-foreground'
-                            }`}
-                          />
-                          {!isLast && (
-                            <div className="w-0.5 h-6 bg-border" />
-                          )}
-                        </div>
-                        <p className={`text-sm pb-2 ${index === 0 || isLast ? 'font-medium' : 'text-muted-foreground'}`}>
-                          {isGu ? stop.nameGu : stop.name}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {isGu ? `${selectedRoute.stops_count} સ્ટોપ્સ` : `${selectedRoute.stops_count} stops`}
+                </p>
 
                 <div className="mt-6 pt-4 border-t border-border grid grid-cols-3 gap-4 text-center">
                   <div>
                     <p className="text-xs text-muted-foreground">{t('routes.firstBus')}</p>
-                    <p className="font-semibold">{selectedRoute.firstBus}</p>
+                    <p className="font-semibold">{selectedRoute.first_bus || '-'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">{t('routes.lastBus')}</p>
-                    <p className="font-semibold">{selectedRoute.lastBus}</p>
+                    <p className="font-semibold">{selectedRoute.last_bus || '-'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">{t('routes.frequency')}</p>
-                    <p className="font-semibold">{selectedRoute.frequency}</p>
+                    <p className="font-semibold">{selectedRoute.frequency || '-'}</p>
                   </div>
                 </div>
 
-                <div className="mt-4 p-4 bg-accent/10 rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground mb-1">{isGu ? 'ભાડું' : 'Fare'}</p>
-                  <p className="text-2xl font-bold text-accent">₹{selectedRoute.fare}</p>
+                {selectedRoute.fare && (
+                  <div className="mt-4 p-4 bg-accent/10 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground mb-1">{isGu ? 'ભાડું' : 'Fare'}</p>
+                    <p className="text-2xl font-bold text-accent">₹{selectedRoute.fare}</p>
+                  </div>
+                )}
+
+                <div className="mt-4">
+                  <Button 
+                    className="w-full"
+                    onClick={() => {
+                      navigate(`/routes/${selectedRoute.route_number}`);
+                      setSelectedRoute(null);
+                    }}
+                  >
+                    {isGu ? 'વધુ વિગતો જુઓ' : 'View Full Details'}
+                  </Button>
                 </div>
               </div>
             </>
