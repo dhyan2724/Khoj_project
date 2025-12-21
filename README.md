@@ -1,4 +1,4 @@
-# Welcome to your Lovable project
+# Welcome to Vadodara city bus project
 
 ## How can I edit this code?
 
