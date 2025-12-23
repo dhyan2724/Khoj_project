@@ -1,0 +1,64 @@
+Vadodara City Bus Website – Key Features
+
+1. Home & Overview
+- Modern landing page with government branding for Vadodara Municipal Corporation.
+- Hero section to quickly plan a journey using “From” and “To” bus stops.
+- Quick links to Route Planner, Routes & Timetable, Fare & Pass, and Complaints pages.
+- Service alerts section showing important notices about bus operations.
+- Popular routes showcase and basic system statistics (buses, routes, stops, daily riders).
+
+2. Multilingual Support
+- Language toggle with support for English and Gujarati (labels, titles, and key texts localized).
+
+3. Route Planner
+- Select origin and destination bus stops from searchable dropdowns.
+- Swap origin and destination stops with one click.
+- Find all available bus routes between the selected stops.
+- Detailed route view with full stop list, highlighting start/end and selected stops.
+- Displays first bus time, last bus time, and estimated travel information.
+- Integrated route map that visualizes the selected route on an interactive map.
+- Automatic ticket fare calculation based on route distance and passenger category.
+- “Buy Ticket” action that leads to the ticket purchase/payment flow (with login check).
+
+4. Routes & Timetable
+- Complete list of all city bus routes fetched from Supabase (backend database).
+- Search routes by number, name (English/Gujarati), start point, or end point.
+- Displays number of stops, first/last bus times, frequency, distance, and fare (where available).
+- One‑click navigation to full route details pages.
+- Option to download a JSON timetable file (`vadodara-bus-timetable.json`).
+
+5. Route Details
+- Individual route detail pages accessible via route number.
+- Visual representation of the route line, stops, timings, and meta information.
+
+6. Live Tracking (Planned / CTA)
+- Prominent section encouraging live bus tracking with real‑time location, ETA, and occupancy (CTA present; live tracking route currently commented out in code).
+
+7. Fares, Passes & Payments
+- Dedicated Fare page explaining ticket fares and pass options.
+- My Passes section for viewing previously purchased passes (requires authentication).
+- Payment flow using a Payment page that accepts context such as ticket type, category, price, route, and stops via URL query parameters.
+
+8. User Authentication
+- Auth page integrated with Supabase authentication.
+- Login requirement enforced before buying tickets.
+
+9. Complaints & Feedback
+- Complaints page to register and submit grievances about bus services.
+
+10. About & Informational Pages
+- About page describing the Vadodara City Bus system and the digital platform.
+- Not Found (404) page for handling invalid URLs.
+
+11. UI & Experience
+- Responsive layout that works on desktop and mobile.
+- Reusable layout with header, footer, and navigation.
+- Rich component library (buttons, dialogs, toasts, tooltips, cards, accordions, etc.) via shadcn‑ui and Tailwind CSS.
+- Toast and notification system for feedback and errors.
+
+12. Technology & Integrations
+- Built with Vite, React, TypeScript, Tailwind CSS, shadcn‑ui.
+- Supabase integration for routes, stops, authentication, and other data.
+- React Query (`@tanstack/react-query`) for data fetching and caching.
+
+

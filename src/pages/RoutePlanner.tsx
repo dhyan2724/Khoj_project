@@ -4,6 +4,7 @@ import { MapPin, ArrowRight, Clock, Navigation, ArrowRightLeft, Ticket, IndianRu
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Layout from '@/components/layout/Layout';
+import RouteMap from '@/components/map/RouteMap';
 import RouteCard from '@/components/cards/RouteCard';
 import { busStops, busRoutes, findRoutesBetweenStops, calculateFare } from '@/data/transportData';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -239,7 +240,7 @@ const RoutePlanner = () => {
             )}
           </div>
 
-          {/* Results */}
+          {/* Results + Map */}
           <div>
             {!hasSearched ? (
               <div className="flex flex-col items-center justify-center h-[400px] text-center">
@@ -270,7 +271,7 @@ const RoutePlanner = () => {
                 </p>
               </div>
             ) : (
-              <div>
+              <div className="space-y-6">
                 <div className="flex items-center gap-2 mb-6">
                   <h2 className="text-xl font-semibold">{t('planner.results')}</h2>
                   <span className="px-2 py-0.5 rounded-full bg-accent/10 text-accent text-sm font-medium">
@@ -279,7 +280,7 @@ const RoutePlanner = () => {
                 </div>
 
                 {/* Journey Summary */}
-                <div className="bg-muted/50 rounded-xl p-4 mb-6 flex items-center gap-3">
+                <div className="bg-muted/50 rounded-xl p-4 flex items-center gap-3">
                   <div className="flex-1">
                     <p className="text-sm text-muted-foreground mb-1">{t('planner.from')}</p>
                     <p className="font-medium">{fromStopData && (isGu ? fromStopData.nameGu : fromStopData.name)}</p>
@@ -290,6 +291,25 @@ const RoutePlanner = () => {
                     <p className="font-medium">{toStopData && (isGu ? toStopData.nameGu : toStopData.name)}</p>
                   </div>
                 </div>
+
+                {/* Map for selected route */}
+                {selectedRoute && (
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      {isGu ? 'નકશામાં રૂટ' : 'Route on Map'}
+                    </h3>
+                    <RouteMap
+                      stops={selectedRoute.stops.map((s) => ({
+                        id: s.id,
+                        name: s.name,
+                        name_gu: s.nameGu,
+                        latitude: s.latitude,
+                        longitude: s.longitude,
+                      }))}
+                    />
+                  </div>
+                )}
 
                 <div className="grid gap-4">
                   {searchResults.map((route, index) => (

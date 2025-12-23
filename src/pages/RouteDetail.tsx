@@ -1,4 +1,5 @@
 import Layout from '@/components/layout/Layout';
+import RouteMap from '@/components/map/RouteMap';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -259,6 +260,20 @@ const RouteDetail = () => {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Map with stops */}
+        {stops.length > 1 && (
+          <div className="bg-card rounded-lg border border-border p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                {isGu ? 'રૂટ નકશો' : 'Route Map'}
+              </h2>
+              <Badge variant="secondary">Google Maps</Badge>
+            </div>
+            <RouteMap stops={stops} />
           </div>
         )}
 
